@@ -2,29 +2,16 @@
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
     <title>整骨院AIダイエットコーチ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      /* カスタムスクロールバー */
-      ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #f1f1f1;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 3px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-      }
-      /* セーフエリア対応 */
-      .pb-safe {
-        padding-bottom: env(safe-area-inset-bottom);
-      }
+      ::-webkit-scrollbar { width: 4px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+      .pt-safe { padding-top: env(safe-area-inset-top); }
+      body { -webkit-tap-highlight-color: transparent; }
     </style>
   <script type="importmap">
 {
