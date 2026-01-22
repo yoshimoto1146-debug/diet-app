@@ -5,9 +5,12 @@ import Dashboard from './components/Dashboard';
 import InBodyManager from './components/InBodyManager';
 import MealTracker from './components/MealTracker';
 import ExercisePlan from './components/ExercisePlan';
-import { Briefcase, Activity, Save, User as UserIcon } from 'lucide-react';
+import StaffPortal from './components/StaffPortal';
+import { Briefcase, Activity, Save, User as UserIcon, Lock, Users } from 'lucide-react';
 
 const EMPTY_USER: UserProfile = {
+  patientId: "",
+  clinicCode: "",
   name: "",
   age: 0,
   gender: Gender.MALE,
@@ -18,7 +21,7 @@ const EMPTY_USER: UserProfile = {
 };
 
 const App: React.FC = () => {
-  const [currentView, setView] = useState<ViewState>('dashboard');
+  const [currentView, setView] = useState<ViewState>('login');
   const [user, setUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('diet_user');
     return saved ? JSON.parse(saved) : EMPTY_USER;
@@ -34,18 +37,43 @@ const App: React.FC = () => {
   const [exerciseLogs] = useState<ExerciseLog[]>([]);
 
   useEffect(() => {
-    localStorage.setItem('diet_user', JSON.stringify(user));
-    localStorage.setItem('diet_inbody', JSON.stringify(inBodyHistory));
-    localStorage.setItem('diet_meals', JSON.stringify(mealLogs));
+    if (user.patientId) {
+      localStorage.setItem('diet_user', JSON.stringify(user));
+      localStorage.setItem('diet_inbody', JSON.stringify(inBodyHistory));
+      localStorage.setItem('diet_meals', JSON.stringify(mealLogs));
+    }
   }, [user, inBodyHistory, mealLogs]);
 
-  // プロフィールが未設定なら設定画面へ誘導
-  const isProfileEmpty = !user.name || user.heightCm === 0;
+  useEffect(() => {
+    if (user.patientId && currentView === 'login') {
+      setView(user.isStaff ? 'staff-portal' : 'dashboard');
+    }
+  }, []);
+
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const patientId = formData.get('patientId') as string;
+    const clinicCode = formData.get('clinicCode') as string;
+
+    // スタッフ用隠しコマンド (例: 院コードが "ADMIN123" ならスタッフモード)
+    if (clinicCode === "STAFF999") {
+      setUser({ ...EMPTY_USER, patientId: "STAFF", clinicCode, isStaff: true });
+      setView('staff-portal');
+      return;
+    }
+
+    if (patientId && clinicCode) {
+      setUser({ ...user, patientId, clinicCode, isStaff: false });
+      setView(user.name ? 'dashboard' : 'profile');
+    }
+  };
 
   const handleUpdateProfile = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const updated: UserProfile = {
+      ...user,
       name: formData.get('name') as string,
       age: Number(formData.get('age')),
       gender: formData.get('gender') as Gender,
@@ -55,39 +83,50 @@ const App: React.FC = () => {
       lifestyleActivity: formData.get('lifestyleActivity') as LifestyleActivity,
     };
     setUser(updated);
-    alert("プロフィールを保存しました！");
     setView('dashboard');
   };
 
-  const renderContent = () => {
-    if (isProfileEmpty && currentView !== 'profile') {
-      return (
-        <div className="p-8 text-center mt-20">
-          <div className="w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center text-teal-600 mx-auto mb-6">
-            <UserIcon size={40} />
-          </div>
-          <h2 className="text-xl font-bold mb-2">まずは設定をしましょう</h2>
-          <p className="text-slate-500 text-sm mb-8">AIコーチがあなたに合わせたプランを作成します。</p>
-          <button 
-            onClick={() => setView('profile')}
-            className="bg-teal-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg"
-          >
-            設定を始める
-          </button>
-        </div>
-      );
-    }
+  const logout = () => {
+    localStorage.removeItem('diet_user');
+    setUser(EMPTY_USER);
+    setView('login');
+  };
 
+  if (currentView === 'login') {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white">
+        <div className="w-16 h-16 bg-teal-500 rounded-2xl flex items-center justify-center text-3xl font-bold mb-8 shadow-2xl shadow-teal-500/20">整</div>
+        <h1 className="text-2xl font-bold mb-2">整骨院AIダイエット</h1>
+        <p className="text-slate-400 text-sm mb-10">専用IDでログインしてください</p>
+        
+        <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">院コード</label>
+            <input name="clinicCode" required placeholder="スタッフから渡されたコード" className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">患者ID</label>
+            <input name="patientId" required placeholder="例: P-12345" className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+          </div>
+          <button type="submit" className="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-4 rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+            ログイン <Lock size={18} />
+          </button>
+        </form>
+        <p className="mt-8 text-[10px] text-slate-500">IDをお持ちでない方は、受付スタッフまでお声がけください。</p>
+      </div>
+    );
+  }
+
+  const renderContent = () => {
     switch (currentView) {
       case 'dashboard': return <Dashboard user={user} inBodyHistory={inBodyHistory} mealLogs={mealLogs} setView={setView} />;
       case 'inbody': return <InBodyManager history={inBodyHistory} onAddEntry={d => setInBodyHistory([...inBodyHistory, d].sort((a,b) => a.date.localeCompare(b.date)))} />;
       case 'meals': return <MealTracker logs={mealLogs} onAddLog={l => setMealLogs([...mealLogs, l])} />;
       case 'exercise': return <ExercisePlan logs={exerciseLogs} />;
+      case 'staff-portal': return <StaffPortal logout={logout} />;
       case 'profile': return (
         <div className="p-6 pb-24">
-          <div className="flex flex-col items-center mb-8">
-            <h2 className="text-xl font-bold">プロフィール設定</h2>
-          </div>
+          <h2 className="text-xl font-bold mb-6">プロフィール設定</h2>
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
               <div>
@@ -117,7 +156,7 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
-
+            
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
               <div className="flex items-center gap-2 mb-3 text-teal-600">
                 <Briefcase size={16} />
@@ -131,16 +170,15 @@ const App: React.FC = () => {
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
               <div className="flex items-center gap-2 mb-3 text-indigo-600">
                 <Activity size={16} />
-                <h3 className="font-bold text-xs uppercase tracking-wider">日常生活の運動習慣</h3>
+                <h3 className="font-bold text-xs uppercase tracking-wider">運動習慣</h3>
               </div>
               <select name="lifestyleActivity" defaultValue={user.lifestyleActivity} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-teal-500 outline-none">
                 {Object.values(LifestyleActivity).map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
 
-            <button type="submit" className="w-full bg-teal-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-teal-100 hover:bg-teal-700 transition-colors active:scale-[0.98]">
-              <Save size={20} /> 設定を保存する
-            </button>
+            <button type="submit" className="w-full bg-teal-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95">設定を保存</button>
+            <button type="button" onClick={logout} className="w-full text-slate-400 text-xs py-4">ログアウトしてIDを変更する</button>
           </form>
         </div>
       );
@@ -148,7 +186,7 @@ const App: React.FC = () => {
     }
   };
 
-  return <Layout currentView={currentView} setView={setView}>{renderContent()}</Layout>;
+  return <Layout currentView={currentView} setView={setView} isStaff={user.isStaff}>{renderContent()}</Layout>;
 };
 
 export default App;
