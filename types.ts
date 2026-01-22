@@ -18,6 +18,8 @@ export enum LifestyleActivity {
 }
 
 export interface UserProfile {
+  patientId: string;
+  clinicCode: string;
   name: string;
   age: number;
   gender: Gender;
@@ -25,6 +27,8 @@ export interface UserProfile {
   targetWeightKg: number;
   jobActivity: JobActivity;
   lifestyleActivity: LifestyleActivity;
+  isStaff?: boolean;
+  lastSync?: string;
 }
 
 export interface InBodyData {
@@ -36,6 +40,7 @@ export interface InBodyData {
   bmi: number;
   visceralFatLevel?: number;
   score?: number;
+  staffComment?: string;
 }
 
 export interface MealLog {
@@ -49,6 +54,7 @@ export interface MealLog {
   fat: number;
   carbs: number;
   aiAnalysis?: string;
+  staffComment?: string;
 }
 
 export interface ExerciseLog {
@@ -60,4 +66,4 @@ export interface ExerciseLog {
   caloriesBurned?: number;
 }
 
-export type ViewState = 'dashboard' | 'inbody' | 'meals' | 'exercise' | 'profile';
+export type ViewState = 'login' | 'dashboard' | 'inbody' | 'meals' | 'exercise' | 'profile' | 'staff-portal';
