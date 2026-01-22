@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { InBodyData } from '../types';
 import { analyzeInBodyImage } from '../services/geminiService';
-import { Camera, Upload, Plus, Check, AlertCircle, Loader2 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
+import { Camera, Loader2, Calendar, AlertCircle } from 'lucide-react';
 
 interface InBodyManagerProps {
   history: InBodyData[];
@@ -27,10 +26,9 @@ const InBodyManager: React.FC<InBodyManagerProps> = ({ history, onAddEntry }) =>
         const base64String = (reader.result as string).split(',')[1];
         const result = await analyzeInBodyImage(base64String);
         
-        // Create new entry
         const newEntry: InBodyData = {
           id: Date.now().toString(),
-          date: new Date().toISOString().split('T')[0],
+          date: result.date || new Date().toISOString().split('T')[0],
           weightKg: result.weightKg || 0,
           bodyFatPercent: result.bodyFatPercent || 0,
           muscleMassKg: result.muscleMassKg || 0,
@@ -40,12 +38,13 @@ const InBodyManager: React.FC<InBodyManagerProps> = ({ history, onAddEntry }) =>
         };
 
         if (newEntry.weightKg === 0) {
-          throw new Error("体重を検出できませんでした。手動で入力してください。");
+          throw new Error("数値を読み取れませんでした。");
         }
 
         onAddEntry(newEntry);
+        alert(`${newEntry.date}のデータとして登録しました！`);
       } catch (e) {
-        setError("画像の解析に失敗しました。より鮮明な写真を試すか、手動で入力してください。");
+        setError("スキャンに失敗しました。鮮明に撮り直すか、手動入力を検討してください。");
       } finally {
         setIsScanning(false);
       }
@@ -53,92 +52,82 @@ const InBodyManager: React.FC<InBodyManagerProps> = ({ history, onAddEntry }) =>
     reader.readAsDataURL(file);
   };
 
-  const latest = history[history.length - 1];
+  const latest = history.length > 0 ? history[history.length - 1] : null;
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="p-4 space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold text-slate-800">InBody データ</h2>
+        <h2 className="text-lg font-bold text-slate-800">InBody記録</h2>
         <button 
           onClick={() => fileInputRef.current?.click()}
           disabled={isScanning}
-          className="bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 shadow-md hover:bg-teal-700 transition-colors disabled:opacity-50"
+          className="bg-teal-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg active:scale-95 transition-all disabled:opacity-50"
         >
-          {isScanning ? <Loader2 className="animate-spin" size={18} /> : <Camera size={18} />}
+          {isScanning ? <Loader2 className="animate-spin" size={16} /> : <Camera size={16} />}
           結果をスキャン
         </button>
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
-          accept="image/*" 
-          onChange={handleFileUpload}
-        />
+        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2 border border-red-100">
-          <AlertCircle size={18} />
+        <div className="bg-rose-50 text-rose-600 p-3 rounded-xl text-[11px] flex items-center gap-2 border border-rose-100">
+          <AlertCircle size={14} />
           {error}
         </div>
       )}
 
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-          <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">体重</p>
-          <div className="mt-2 flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-slate-800">{latest.weightKg}</span>
-            <span className="text-sm text-slate-500">kg</span>
+      {latest ? (
+        <>
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+             <div className="flex items-center gap-2 text-slate-400 mb-4">
+                <Calendar size={14} />
+                <span className="text-[10px] font-bold uppercase tracking-widest">最新の測定: {latest.date}</span>
+             </div>
+             <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-3 rounded-xl">
+                   <p className="text-[8px] font-bold text-slate-400 uppercase mb-1">体重</p>
+                   <p className="text-xl font-bold">{latest.weightKg} <span className="text-[10px] font-normal opacity-50">kg</span></p>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl">
+                   <p className="text-[8px] font-bold text-slate-400 uppercase mb-1">筋肉量</p>
+                   <p className="text-xl font-bold text-teal-600">{latest.muscleMassKg} <span className="text-[10px] font-normal opacity-50 text-slate-800">kg</span></p>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl">
+                   <p className="text-[8px] font-bold text-slate-400 uppercase mb-1">体脂肪率</p>
+                   <p className="text-xl font-bold text-orange-500">{latest.bodyFatPercent} <span className="text-[10px] font-normal opacity-50 text-slate-800">%</span></p>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl">
+                   <p className="text-[8px] font-bold text-slate-400 uppercase mb-1">スコア</p>
+                   <p className="text-xl font-bold text-indigo-600">{latest.score || '--'} <span className="text-[10px] font-normal opacity-50 text-slate-800">点</span></p>
+                </div>
+             </div>
           </div>
-        </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-          <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">骨格筋量 (SMM)</p>
-          <div className="mt-2 flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-slate-800">{latest.muscleMassKg}</span>
-            <span className="text-sm text-slate-500">kg</span>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-          <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">体脂肪率</p>
-          <div className="mt-2 flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-slate-800">{latest.bodyFatPercent}</span>
-            <span className="text-sm text-slate-500">%</span>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-          <p className="text-slate-500 text-xs uppercase font-bold tracking-wider">InBody点数</p>
-          <div className="mt-2 flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-teal-600">{latest.score || '--'}</span>
-            <span className="text-sm text-slate-500">点</span>
-          </div>
-        </div>
-      </div>
 
-      {/* Composition Chart */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
-        <h3 className="font-semibold text-slate-800 mb-4">体成分の履歴</h3>
-        <div className="h-64">
-           <ResponsiveContainer width="100%" height="100%">
-             <BarChart data={history.slice(-6)}>
-               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-               <XAxis dataKey="date" tickFormatter={(v) => new Date(v).toLocaleDateString('ja-JP', {month:'numeric', day:'numeric'})} fontSize={12} stroke="#94a3b8" />
-               <YAxis fontSize={12} stroke="#94a3b8" />
-               <Tooltip 
-                  cursor={{fill: '#f8fafc'}}
-                  contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
-                  labelFormatter={(v) => new Date(v).toLocaleDateString('ja-JP')}
-               />
-               <Bar dataKey="muscleMassKg" name="筋肉量 (kg)" fill="#0d9488" radius={[4, 4, 0, 0]} />
-               <Bar dataKey="bodyFatPercent" name="体脂肪率 (%)" fill="#fb923c" radius={[4, 4, 0, 0]} />
-             </BarChart>
-           </ResponsiveContainer>
+          <div className="space-y-2">
+             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">履歴</h3>
+             {[...history].reverse().slice(0, 5).map(entry => (
+               <div key={entry.id} className="bg-white px-4 py-3 rounded-xl border border-slate-100 flex justify-between items-center">
+                  <span className="text-xs font-bold text-slate-600">{entry.date}</span>
+                  <div className="flex gap-4">
+                     <div className="text-right">
+                        <p className="text-[8px] text-slate-400 font-bold uppercase">Weight</p>
+                        <p className="text-xs font-bold">{entry.weightKg}kg</p>
+                     </div>
+                     <div className="text-right">
+                        <p className="text-[8px] text-slate-400 font-bold uppercase">Muscle</p>
+                        <p className="text-xs font-bold text-teal-600">{entry.muscleMassKg}kg</p>
+                     </div>
+                  </div>
+               </div>
+             ))}
+          </div>
+        </>
+      ) : (
+        <div className="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl">
+           <Camera size={40} className="mx-auto text-slate-200 mb-4" />
+           <p className="text-slate-400 text-sm">InBody用紙を撮影してください</p>
         </div>
-      </div>
-
-      <div className="text-center text-xs text-slate-400 mt-8">
-        InBodyの結果用紙全体が写るように撮影してください。
-      </div>
+      )}
     </div>
   );
 };
