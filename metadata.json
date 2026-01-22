@@ -1,0 +1,7 @@
+{
+  "name": "整骨院AIダイエットコーチ",
+  "description": "整骨院の患者様向けの総合ダイエット・健康管理アプリ。InBodyデータの統合、AIによる食事分析、パーソナライズされた運動プランを提供します。",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
