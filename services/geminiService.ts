@@ -1,15 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { MealLog, InBodyData, UserProfile } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const cleanJsonString = (str: string) => {
   return str.replace(/```json\n?|\n?```/g, '').trim();
 };
 
 export const analyzeInBodyImage = async (base64Image: string): Promise<Partial<InBodyData>> => {
-  if (!apiKey) throw new Error("API Key missing");
   const prompt = `
     Analyze this image of an InBody result sheet.
     Extract: weightKg, bodyFatPercent, muscleMassKg, bmi, visceralFatLevel, score.
@@ -31,7 +29,6 @@ export const analyzeInBodyImage = async (base64Image: string): Promise<Partial<I
 };
 
 export const analyzeMeal = async (description: string, base64Image?: string): Promise<Partial<MealLog>> => {
-  if (!apiKey) throw new Error("API Key missing");
   const prompt = `
     あなたは整骨院の専属ダイエットコーチです。
     食事（画像/テキスト）を分析し、カロリーとPFC（タンパク質・脂質・炭水化物）を算出して日本語でアドバイスしてください。
@@ -68,7 +65,6 @@ export const analyzeMeal = async (description: string, base64Image?: string): Pr
 };
 
 export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile): Promise<{ score: number; comment: string }> => {
-  if (!apiKey) throw new Error("API Key missing");
   if (meals.length === 0) return { score: 0, comment: "記録を始めましょう！" };
   const summary = meals.map(m => `- ${m.description}: ${m.calories}kcal`).join('\n');
   const prompt = `
@@ -90,7 +86,6 @@ export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile): Pr
 };
 
 export const generateSeikotsuinPlan = async (user: UserProfile, latestInBody?: InBodyData): Promise<string> => {
-  if (!apiKey) throw new Error("API Key missing");
   const prompt = `
     あなたは整骨院のコーチです。
     プロフィールに基づき、仕事（${user.jobActivity}）や運動習慣（${user.lifestyleActivity}）を考慮した個別ダイエットプランを日本語・Markdownで提案してください。
