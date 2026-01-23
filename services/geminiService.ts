@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { MealLog, InBodyData, UserProfile } from "../types";
 
@@ -20,6 +21,20 @@ export const analyzeInBodyImage = async (base64Image: string): Promise<Partial<I
       },
       config: { 
         responseMimeType: "application/json",
+        // Recommended to use responseSchema for JSON output
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            date: { type: Type.STRING, description: 'Measurement date in YYYY-MM-DD format' },
+            weightKg: { type: Type.NUMBER },
+            bodyFatPercent: { type: Type.NUMBER },
+            muscleMassKg: { type: Type.NUMBER },
+            bmi: { type: Type.NUMBER },
+            visceralFatLevel: { type: Type.NUMBER },
+            score: { type: Type.NUMBER },
+          },
+          required: ["date", "weightKg", "bodyFatPercent", "muscleMassKg", "bmi"]
+        },
         thinkingConfig: { thinkingBudget: 0 } // 最速レスポンス
       }
     });
@@ -88,6 +103,15 @@ export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile, tar
       contents: prompt,
       config: { 
         responseMimeType: "application/json",
+        // Using responseSchema to ensure structured output
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            score: { type: Type.NUMBER },
+            comment: { type: Type.STRING },
+          },
+          required: ["score", "comment"]
+        },
         thinkingConfig: { thinkingBudget: 0 }
       }
     });
