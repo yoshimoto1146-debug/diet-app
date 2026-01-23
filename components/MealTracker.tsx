@@ -27,7 +27,6 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
   const todaysMeals = logs.filter(m => m.date === today);
 
   useEffect(() => {
-    // 画面を開いた際に一番上を表示
     window.scrollTo(0, 0);
     const hour = new Date().getHours();
     if (hour >= 4 && hour < 11) setSelectedCategory('朝食');
@@ -53,38 +52,6 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
   };
 
   const targets = calculateTargets();
-  const actuals = {
-    calories: todaysMeals.reduce((s, m) => s + m.calories, 0),
-    protein: todaysMeals.reduce((s, m) => s + m.protein, 0),
-    fat: todaysMeals.reduce((s, m) => s + m.fat, 0),
-    carbs: todaysMeals.reduce((s, m) => s + m.carbs, 0),
-  };
-
-  useEffect(() => {
-    if (showSummary && todaysMeals.length > 0) {
-      const fetchScore = async () => {
-        setLoadingScore(true);
-        try {
-          const result = await evaluateDailyDiet(todaysMeals, user, targets);
-          setDailyScore(result);
-        } catch (e) {
-          setDailyScore({ score: 70, comment: "記録を続けていきましょう！" });
-        } finally {
-          setLoadingScore(false);
-        }
-      };
-      fetchScore();
-    }
-  }, [showSummary, todaysMeals.length]);
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPreviewImage(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleSubmit = async () => {
     if (!description && !previewImage) return;
@@ -112,25 +79,10 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
       setPreviewImage(null);
     } catch (error) {
       console.error(error);
-      alert("解析に時間がかかっています。内容を保持したまま手動で保存しました。");
+      alert("通信エラーが発生しました。手動で保存します。");
     } finally {
       setIsAnalyzing(false);
     }
-  };
-
-  const renderProgress = (label: string, actual: number, target: number, unit: string) => {
-    const percent = Math.min((actual / target) * 100, 100);
-    return (
-      <div className="space-y-1">
-        <div className="flex justify-between items-end">
-          <span className="text-[9px] font-black text-slate-400 uppercase">{label}</span>
-          <span className="text-[10px] font-bold text-slate-700">{actual}/{target}{unit}</span>
-        </div>
-        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-          <div className="h-full bg-teal-500 transition-all duration-700" style={{ width: `${percent}%` }} />
-        </div>
-      </div>
-    );
   };
 
   const categories: {name: MealCategory, icon: any}[] = [
@@ -140,29 +92,24 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
     { name: '間食', icon: Coffee }
   ];
 
-  const isLogged = (cat: MealCategory) => todaysMeals.some(m => m.category === cat);
-
   return (
-    <div className="flex flex-col min-h-full bg-slate-50">
-      {/* 
-        ヘッダーとの重なりを防ぐために、stickyのtopを調整。
-        Layout.tsxのヘッダーがh-14(56px)なので、top-0の代わりに「ヘッダーの下」に固定。
-      */}
-      <div className="bg-white border-b border-slate-100 px-4 py-4 sticky top-0 z-20 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
-            <Utensils size={18} className="text-teal-600" />
-            今日の食事
+    <div className="flex flex-col min-h-screen bg-slate-50">
+      {/* 画面上部の固定エリア */}
+      <div className="bg-white border-b border-slate-100 p-4 sticky top-0 z-30 shadow-sm">
+        <div className="flex items-center justify-between mb-4 px-1">
+          <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+            <Utensils size={20} className="text-teal-600" />
+            食事管理
           </h2>
           <div className="flex gap-1.5">
             {categories.map(c => (
-              <div key={c.name} className={`w-2 h-2 rounded-full border border-slate-100 transition-colors duration-500 ${isLogged(c.name) ? 'bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.5)]' : 'bg-slate-200'}`} />
+              <div key={c.name} className={`w-2.5 h-2.5 rounded-full border border-slate-100 ${todaysMeals.some(m => m.category === c.name) ? 'bg-teal-500 shadow-sm' : 'bg-slate-200'}`} />
             ))}
           </div>
         </div>
         
-        {/* カテゴリ選択: 大きなボタンで押しやすく */}
-        <div className="flex p-1 bg-slate-100 rounded-2xl gap-1">
+        {/* 重要：ここが「朝昼夕間」の切り替えスイッチです */}
+        <div className="flex p-1.5 bg-slate-100 rounded-2xl gap-1">
           {categories.map(cat => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.name;
@@ -170,14 +117,14 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
               <button
                 key={cat.name}
                 onClick={() => setSelectedCategory(cat.name)}
-                className={`flex-1 flex flex-col items-center justify-center py-3 rounded-xl transition-all active:scale-95 ${
+                className={`flex-1 flex flex-col items-center justify-center py-3 rounded-xl transition-all ${
                   isSelected 
                     ? 'bg-white text-teal-600 shadow-md font-black' 
-                    : 'text-slate-400 font-bold hover:text-slate-500'
+                    : 'text-slate-400 font-bold hover:bg-slate-200/50'
                 }`}
               >
                 <Icon size={20} strokeWidth={isSelected ? 3 : 2} />
-                <span className="text-[10px] mt-1 tracking-tighter">{cat.name}</span>
+                <span className="text-[10px] mt-1">{cat.name}</span>
               </button>
             );
           })}
@@ -185,13 +132,13 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
       </div>
 
       <div className="p-4 space-y-4 pb-32">
-        {/* 入力エリア */}
+        {/* 入力フォーム */}
         <div className="bg-white p-5 rounded-[32px] shadow-sm border border-slate-100">
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={`${selectedCategory}のメニューを入力...`}
-            className="w-full p-2 bg-transparent border-none focus:ring-0 text-slate-700 resize-none mb-3 text-lg min-h-[120px] font-medium"
+            placeholder={`${selectedCategory}のメニューを教えてください...`}
+            className="w-full p-2 bg-transparent border-none focus:ring-0 text-slate-700 resize-none mb-3 text-lg min-h-[100px] font-medium"
           />
           
           {previewImage && (
@@ -204,20 +151,20 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
           )}
 
           <div className="flex gap-3">
-             <button onClick={() => fileInputRef.current?.click()} className="bg-slate-50 text-slate-600 p-4 rounded-2xl border border-slate-100 active:scale-90 transition-all">
-               <Camera size={26} />
+             <button onClick={() => fileInputRef.current?.click()} className="bg-slate-50 text-slate-600 p-4 rounded-2xl border border-slate-200 active:scale-90 transition-all">
+               <Camera size={28} />
              </button>
              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
 
              <button 
                onClick={handleSubmit}
                disabled={isAnalyzing || (!description && !previewImage)}
-               className="flex-1 bg-slate-900 text-white font-black rounded-2xl py-4 flex items-center justify-center gap-2 shadow-xl active:scale-95 disabled:opacity-30"
+               className="flex-1 bg-teal-600 text-white font-black rounded-2xl py-4 flex items-center justify-center gap-2 shadow-xl shadow-teal-600/20 active:scale-95 disabled:opacity-30"
              >
                {isAnalyzing ? (
                  <div className="flex items-center gap-2">
                    <Loader2 className="animate-spin" size={20} />
-                   <span>AIが計算中...</span>
+                   <span>AIが解析中...</span>
                  </div>
                ) : (
                  <>
@@ -230,14 +177,14 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
         </div>
 
         {/* タイムライン */}
-        <div className="space-y-4 pt-4">
+        <div className="space-y-4">
           <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
-            <TrendingUp size={14} /> 今日のタイムライン
+            <TrendingUp size={14} /> 最近の食事履歴
           </h3>
           
           {todaysMeals.length === 0 ? (
-            <div className="py-20 text-center text-slate-300">
-               <p className="text-xs font-bold">まだ記録がありません</p>
+            <div className="py-16 text-center text-slate-300">
+               <p className="text-xs font-bold">まだ今日の記録はありません</p>
             </div>
           ) : (
             [...todaysMeals].sort((a, b) => {
@@ -245,7 +192,7 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
                return order[a.category] - order[b.category];
             }).map((log) => (
               <div key={log.id} className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex gap-4 items-center">
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 border-2 ${
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 border ${
                   log.category === '朝食' ? 'bg-amber-50 border-amber-100' :
                   log.category === '昼食' ? 'bg-sky-50 border-sky-100' :
                   log.category === '夕食' ? 'bg-indigo-50 border-indigo-100' : 'bg-slate-50 border-slate-100'
@@ -257,19 +204,15 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[9px] px-2 py-0.5 rounded-lg font-black uppercase bg-slate-100 text-slate-600">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-black">
                       {log.category}
                     </span>
                     <h4 className="font-black text-slate-800 text-sm truncate">{log.description}</h4>
                   </div>
-                  <div className="flex gap-4">
+                  <div className="flex gap-3">
                     <span className="text-xs font-black text-teal-600">{log.calories} kcal</span>
-                    <div className="flex gap-2 text-[9px] text-slate-400 font-bold">
-                      <span>P:{log.protein}g</span>
-                      <span>F:{log.fat}g</span>
-                      <span>C:{log.carbs}g</span>
-                    </div>
+                    <span className="text-[9px] text-slate-400 font-bold">P:{log.protein}g F:{log.fat}g C:{log.carbs}g</span>
                   </div>
                 </div>
               </div>
@@ -279,6 +222,15 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
       </div>
     </div>
   );
+
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewImage(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  }
 };
 
 export default MealTracker;
