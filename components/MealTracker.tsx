@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MealLog, UserProfile, Gender, JobActivity, MealCategory } from '../types';
-import { analyzeMeal, evaluateDailyDiet } from '../services/geminiService';
+import { analyzeMeal } from '../services/geminiService';
 import { 
-  Camera, Plus, Loader2, Info, ChevronRight, Calculator, 
-  Award, TrendingUp, Sun, Sunrise, Moon, Coffee, 
+  Camera, Plus, Loader2, TrendingUp, Sun, Sunrise, Moon, Coffee, 
   Utensils 
 } from 'lucide-react';
 
