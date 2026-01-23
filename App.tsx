@@ -56,7 +56,6 @@ const App: React.FC = () => {
     const patientId = formData.get('patientId') as string;
     const clinicCode = formData.get('clinicCode') as string;
 
-    // スタッフ用隠しコマンド (例: 院コードが "ADMIN123" ならスタッフモード)
     if (clinicCode === "STAFF999") {
       setUser({ ...EMPTY_USER, patientId: "STAFF", clinicCode, isStaff: true });
       setView('staff-portal');
@@ -121,7 +120,7 @@ const App: React.FC = () => {
     switch (currentView) {
       case 'dashboard': return <Dashboard user={user} inBodyHistory={inBodyHistory} mealLogs={mealLogs} setView={setView} />;
       case 'inbody': return <InBodyManager history={inBodyHistory} onAddEntry={d => setInBodyHistory([...inBodyHistory, d].sort((a,b) => a.date.localeCompare(b.date)))} />;
-      case 'meals': return <MealTracker logs={mealLogs} onAddLog={l => setMealLogs([...mealLogs, l])} />;
+      case 'meals': return <MealTracker logs={mealLogs} onAddLog={l => setMealLogs([...mealLogs, l])} user={user} />;
       case 'exercise': return <ExercisePlan logs={exerciseLogs} />;
       case 'staff-portal': return <StaffPortal logout={logout} />;
       case 'profile': return (
@@ -156,27 +155,6 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
-            
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-              <div className="flex items-center gap-2 mb-3 text-teal-600">
-                <Briefcase size={16} />
-                <h3 className="font-bold text-xs uppercase tracking-wider">仕事のスタイル</h3>
-              </div>
-              <select name="jobActivity" defaultValue={user.jobActivity} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-teal-500 outline-none">
-                {Object.values(JobActivity).map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-              <div className="flex items-center gap-2 mb-3 text-indigo-600">
-                <Activity size={16} />
-                <h3 className="font-bold text-xs uppercase tracking-wider">運動習慣</h3>
-              </div>
-              <select name="lifestyleActivity" defaultValue={user.lifestyleActivity} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-teal-500 outline-none">
-                {Object.values(LifestyleActivity).map(v => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
-
             <button type="submit" className="w-full bg-teal-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95">設定を保存</button>
             <button type="button" onClick={logout} className="w-full text-slate-400 text-xs py-4">ログアウトしてIDを変更する</button>
           </form>
