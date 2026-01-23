@@ -4,7 +4,7 @@ import { analyzeMeal, evaluateDailyDiet } from '../services/geminiService';
 import { 
   Camera, Plus, Loader2, Info, ChevronRight, Calculator, 
   Award, TrendingUp, Sun, Sunrise, Moon, Coffee, 
-  CheckCircle2, Utensils 
+  Utensils 
 } from 'lucide-react';
 
 interface MealTrackerProps {
@@ -18,9 +18,6 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<MealCategory>('昼食');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [showSummary, setShowSummary] = useState(false);
-  const [dailyScore, setDailyScore] = useState<{ score: number; comment: string } | null>(null);
-  const [loadingScore, setLoadingScore] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const today = new Date().toISOString().split('T')[0];
@@ -34,24 +31,6 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
     else if (hour >= 16 && hour < 23) setSelectedCategory('夕食');
     else setSelectedCategory('間食');
   }, []);
-
-  const calculateTargets = () => {
-    let baseBMR = user.gender === Gender.MALE 
-      ? (10 * user.targetWeightKg) + (6.25 * user.heightCm) - (5 * user.age) + 5
-      : (10 * user.targetWeightKg) + (6.25 * user.heightCm) - (5 * user.age) - 161;
-    
-    const activityMult = user.jobActivity === JobActivity.HEAVY ? 1.7 : user.jobActivity === JobActivity.WALK ? 1.5 : 1.2;
-    const targetCal = Math.round(baseBMR * activityMult);
-    
-    return {
-      calories: targetCal,
-      protein: Math.round(user.targetWeightKg * 1.5),
-      fat: Math.round(targetCal * 0.25 / 9),
-      carbs: Math.round(targetCal * 0.5 / 4),
-    };
-  };
-
-  const targets = calculateTargets();
 
   const handleSubmit = async () => {
     if (!description && !previewImage) return;
@@ -79,7 +58,7 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
       setPreviewImage(null);
     } catch (error) {
       console.error(error);
-      alert("通信エラーが発生しました。手動で保存します。");
+      alert("通信エラーが発生しました。");
     } finally {
       setIsAnalyzing(false);
     }
@@ -94,7 +73,6 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
-      {/* 画面上部の固定エリア */}
       <div className="bg-white border-b border-slate-100 p-4 sticky top-0 z-30 shadow-sm">
         <div className="flex items-center justify-between mb-4 px-1">
           <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
@@ -103,12 +81,11 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
           </h2>
           <div className="flex gap-1.5">
             {categories.map(c => (
-              <div key={c.name} className={`w-2.5 h-2.5 rounded-full border border-slate-100 ${todaysMeals.some(m => m.category === c.name) ? 'bg-teal-500 shadow-sm' : 'bg-slate-200'}`} />
+              <div key={c.name} className={`w-2.5 h-2.5 rounded-full border border-slate-100 ${todaysMeals.some(m => m.category === c.name) ? 'bg-teal-500' : 'bg-slate-200'}`} />
             ))}
           </div>
         </div>
         
-        {/* 重要：ここが「朝昼夕間」の切り替えスイッチです */}
         <div className="flex p-1.5 bg-slate-100 rounded-2xl gap-1">
           {categories.map(cat => {
             const Icon = cat.icon;
@@ -120,7 +97,7 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
                 className={`flex-1 flex flex-col items-center justify-center py-3 rounded-xl transition-all ${
                   isSelected 
                     ? 'bg-white text-teal-600 shadow-md font-black' 
-                    : 'text-slate-400 font-bold hover:bg-slate-200/50'
+                    : 'text-slate-400 font-bold'
                 }`}
               >
                 <Icon size={20} strokeWidth={isSelected ? 3 : 2} />
@@ -132,12 +109,11 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
       </div>
 
       <div className="p-4 space-y-4 pb-32">
-        {/* 入力フォーム */}
         <div className="bg-white p-5 rounded-[32px] shadow-sm border border-slate-100">
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={`${selectedCategory}のメニューを教えてください...`}
+            placeholder={`${selectedCategory}のメニューを入力...`}
             className="w-full p-2 bg-transparent border-none focus:ring-0 text-slate-700 resize-none mb-3 text-lg min-h-[100px] font-medium"
           />
           
@@ -154,7 +130,14 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
              <button onClick={() => fileInputRef.current?.click()} className="bg-slate-50 text-slate-600 p-4 rounded-2xl border border-slate-200 active:scale-90 transition-all">
                <Camera size={28} />
              </button>
-             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
+             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => setPreviewImage(reader.result as string);
+                  reader.readAsDataURL(file);
+                }
+             }} />
 
              <button 
                onClick={handleSubmit}
@@ -176,7 +159,6 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
           </div>
         </div>
 
-        {/* タイムライン */}
         <div className="space-y-4">
           <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest pl-2 flex items-center gap-2">
             <TrendingUp size={14} /> 最近の食事履歴
@@ -222,15 +204,6 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
       </div>
     </div>
   );
-
-  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPreviewImage(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  }
 };
 
 export default MealTracker;
