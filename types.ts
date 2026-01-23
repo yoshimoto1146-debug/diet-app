@@ -17,6 +17,13 @@ export enum LifestyleActivity {
   HIGH = '週3〜4回以上運動している'
 }
 
+export enum DietGoal {
+  POSTPARTUM = '産後ダイエット',
+  DIABETES = '糖尿病予防',
+  HYPERTENSION = '高血圧予防',
+  GENERAL = 'ダイエット'
+}
+
 export type MealCategory = '朝食' | '昼食' | '夕食' | '間食';
 
 export interface UserProfile {
@@ -29,20 +36,20 @@ export interface UserProfile {
   targetWeightKg: number;
   jobActivity: JobActivity;
   lifestyleActivity: LifestyleActivity;
+  goal: DietGoal;
   isStaff?: boolean;
-  lastSync?: string;
 }
 
 export interface InBodyData {
   id: string;
   date: string;
   weightKg: number;
-  bodyFatPercent: number;
-  muscleMassKg: number;
-  bmi: number;
+  bodyFatPercent?: number;
+  muscleMassKg?: number;
+  bmi?: number;
   visceralFatLevel?: number;
   score?: number;
-  staffComment?: string;
+  isManual?: boolean;
 }
 
 export interface MealLog {
@@ -57,7 +64,6 @@ export interface MealLog {
   fat: number;
   carbs: number;
   aiAnalysis?: string;
-  staffComment?: string;
 }
 
 export interface ExerciseLog {
