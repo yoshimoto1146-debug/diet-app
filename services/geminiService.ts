@@ -1,7 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { MealLog, InBodyData, UserProfile } from "../types";
 
-// API Key is handled by process.env.API_KEY
 const createAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const cleanJsonString = (str: string) => {
@@ -12,14 +11,17 @@ const cleanJsonString = (str: string) => {
 
 export const analyzeInBodyImage = async (base64Image: string): Promise<Partial<InBodyData>> => {
   const ai = createAI();
-  const prompt = `JSON: date(YYYY-MM-DD), weightKg, bodyFatPercent, muscleMassKg, bmi, visceralFatLevel, score.`;
+  const prompt = `Extract InBody data as JSON. Fields: date(YYYY-MM-DD), weightKg, bodyFatPercent, muscleMassKg, bmi, visceralFatLevel, score.`;
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: {
         parts: [{ inlineData: { mimeType: 'image/jpeg', data: base64Image } }, { text: prompt }]
       },
-      config: { responseMimeType: "application/json" }
+      config: { 
+        responseMimeType: "application/json",
+        thinkingConfig: { thinkingBudget: 0 } // 最速レスポンス
+      }
     });
     return JSON.parse(cleanJsonString(response.text || '{}'));
   } catch (error) {
@@ -30,8 +32,8 @@ export const analyzeInBodyImage = async (base64Image: string): Promise<Partial<I
 
 export const analyzeMeal = async (description: string, base64Image?: string): Promise<Partial<MealLog>> => {
   const ai = createAI();
-  // 最速レスポンスのための極短プロンプト
-  const prompt = `Meal analysis JSON. Input: ${description}. Fields: calories(num), protein(num), fat(num), carbs(num), aiAnalysis(short advice).`;
+  // 英語のプロンプトの方が生成速度が速いため最適化
+  const prompt = `Analyze meal for diet coaching. Input: "${description}". Return JSON: {calories:number, protein:number, fat:number, carbs:number, aiAnalysis:string(short Japanese advice max 40 chars)}.`;
   
   const parts: any[] = [{ text: prompt }];
   if (base64Image) {
@@ -44,6 +46,7 @@ export const analyzeMeal = async (description: string, base64Image?: string): Pr
       contents: { parts },
       config: {
         responseMimeType: "application/json",
+        thinkingConfig: { thinkingBudget: 0 }, // 思考をスキップして即答
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -62,7 +65,7 @@ export const analyzeMeal = async (description: string, base64Image?: string): Pr
     console.warn("AI Analysis failed, returning fallback", error);
     return {
       calories: 0, protein: 0, fat: 0, carbs: 0,
-      aiAnalysis: "ネットワークまたは解析エラーが発生しました。手動で入力を補完してください。"
+      aiAnalysis: "解析をスキップしました。手動で記録を保存できます。"
     };
   }
 };
@@ -78,28 +81,32 @@ export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile, tar
     c: meals.reduce((s, m) => s + m.carbs, 0),
   };
 
-  const prompt = `Score(0-100) and short advice for day. Target: ${targets.calories}kcal, Actual: ${total.cal}kcal. JSON: {score, comment}`;
+  const prompt = `Score daily diet. Target: ${targets.calories}kcal, Actual: ${total.cal}kcal. JSON: {score:number, comment:string(short Japanese max 50 chars)}`;
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
-      config: { responseMimeType: "application/json" }
+      config: { 
+        responseMimeType: "application/json",
+        thinkingConfig: { thinkingBudget: 0 }
+      }
     });
     return JSON.parse(cleanJsonString(response.text || '{}'));
   } catch (error) {
-    return { score: 70, comment: "継続は力なり！明日も頑張りましょう。" };
+    return { score: 70, comment: "一歩ずつ進んでいきましょう！" };
   }
 };
 
 export const generateSeikotsuinPlan = async (user: UserProfile, latestInBody?: InBodyData): Promise<string> => {
   const ai = createAI();
-  const prompt = `Short positive health advice (1 sentence).`;
+  const prompt = `Give one short positive health advice for a diet app. Japanese, 1 sentence.`;
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
+      config: { thinkingConfig: { thinkingBudget: 0 } }
     });
-    return response.text || "今日も水分をしっかり摂りましょう！";
+    return response.text || "今日も姿勢を正して過ごしましょう！";
   } catch (error) {
     return "ストレッチで代謝を上げましょう！";
   }
