@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { InBodyData, UserProfile, MealLog } from '../types';
+import { InBodyData, UserProfile, MealLog, Gender, JobActivity } from '../types';
 import { generateSeikotsuinPlan, evaluateDailyDiet } from '../services/geminiService';
 import { Sparkles, ArrowRight, TrendingDown, Target, Utensils, Award, Plus } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -21,16 +22,36 @@ const Dashboard: React.FC<DashboardProps> = ({ user, inBodyHistory, mealLogs, se
   const today = new Date().toISOString().split('T')[0];
   const todaysMeals = mealLogs.filter(m => m.date === today);
   const caloriesConsumed = todaysMeals.reduce((acc, curr) => acc + curr.calories, 0);
-  const calorieTarget = 2000;
+
+  // Helper to calculate targets based on user profile
+  const calculateTargets = () => {
+    let baseBMR = user.gender === Gender.MALE 
+      ? (10 * user.targetWeightKg) + (6.25 * user.heightCm) - (5 * user.age) + 5
+      : (10 * user.targetWeightKg) + (6.25 * user.heightCm) - (5 * user.age) - 161;
+    
+    const activityMult = user.jobActivity === JobActivity.HEAVY ? 1.7 : user.jobActivity === JobActivity.WALK ? 1.5 : 1.2;
+    const targetCal = Math.round(baseBMR * activityMult);
+    
+    return {
+      calories: targetCal,
+      protein: Math.round(user.targetWeightKg * 1.5),
+      fat: Math.round(targetCal * 0.25 / 9),
+      carbs: Math.round(targetCal * 0.5 / 4),
+    };
+  };
+
+  const targets = calculateTargets();
+  const calorieTarget = targets.calories;
 
   useEffect(() => {
     const fetchData = async () => {
       setLoadingTip(true);
       setLoadingScore(true);
       const latest = inBodyHistory.length > 0 ? inBodyHistory[inBodyHistory.length - 1] : undefined;
+      // Fixed: Pass the targets as the third argument to evaluateDailyDiet
       const [tip, scoreResult] = await Promise.all([
         generateSeikotsuinPlan(user, latest),
-        evaluateDailyDiet(todaysMeals, user)
+        evaluateDailyDiet(todaysMeals, user, targets)
       ]);
       setDailyTip(tip);
       setDailyScore(scoreResult);
