@@ -17,6 +17,8 @@ export enum LifestyleActivity {
   HIGH = '週3〜4回以上運動している'
 }
 
+export type MealCategory = '朝食' | '昼食' | '夕食' | '間食';
+
 export interface UserProfile {
   patientId: string;
   clinicCode: string;
@@ -47,6 +49,7 @@ export interface MealLog {
   id: string;
   date: string;
   time: string;
+  category: MealCategory;
   description: string;
   imageUrl?: string;
   calories: number;
