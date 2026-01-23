@@ -1,8 +1,9 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { MealLog, InBodyData, UserProfile } from "../types";
 
-const createAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+// APIキーが設定されていない場合でもビルドが落ちないようにする
+const apiKey = process.env.API_KEY || "";
+const createAI = () => new GoogleGenAI({ apiKey });
 
 const cleanJsonString = (str: string) => {
   if (!str) return '{}';
@@ -11,6 +12,7 @@ const cleanJsonString = (str: string) => {
 };
 
 export const analyzeInBodyImage = async (base64Image: string): Promise<Partial<InBodyData>> => {
+  if (!apiKey) throw new Error("API key is not configured.");
   const ai = createAI();
   const prompt = `Extract InBody data as JSON. Fields: date(YYYY-MM-DD), weightKg, bodyFatPercent, muscleMassKg, bmi, visceralFatLevel, score.`;
   try {
@@ -21,11 +23,10 @@ export const analyzeInBodyImage = async (base64Image: string): Promise<Partial<I
       },
       config: { 
         responseMimeType: "application/json",
-        // Recommended to use responseSchema for JSON output
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            date: { type: Type.STRING, description: 'Measurement date in YYYY-MM-DD format' },
+            date: { type: Type.STRING },
             weightKg: { type: Type.NUMBER },
             bodyFatPercent: { type: Type.NUMBER },
             muscleMassKg: { type: Type.NUMBER },
@@ -35,20 +36,20 @@ export const analyzeInBodyImage = async (base64Image: string): Promise<Partial<I
           },
           required: ["date", "weightKg", "bodyFatPercent", "muscleMassKg", "bmi"]
         },
-        thinkingConfig: { thinkingBudget: 0 } // 最速レスポンス
+        thinkingConfig: { thinkingBudget: 0 }
       }
     });
     return JSON.parse(cleanJsonString(response.text || '{}'));
   } catch (error) {
-    console.error("InBody Scan failed", error);
+    console.error("InBody Analysis Error:", error);
     throw error;
   }
 };
 
 export const analyzeMeal = async (description: string, base64Image?: string): Promise<Partial<MealLog>> => {
+  if (!apiKey) return { calories: 0, protein: 0, fat: 0, carbs: 0, aiAnalysis: "APIキー未設定" };
   const ai = createAI();
-  // 英語のプロンプトの方が生成速度が速いため最適化
-  const prompt = `Analyze meal for diet coaching. Input: "${description}". Return JSON: {calories:number, protein:number, fat:number, carbs:number, aiAnalysis:string(short Japanese advice max 40 chars)}.`;
+  const prompt = `Analyze meal. Input: "${description}". Return JSON: {calories:number, protein:number, fat:number, carbs:number, aiAnalysis:string(Japanese max 40 chars)}.`;
   
   const parts: any[] = [{ text: prompt }];
   if (base64Image) {
@@ -61,7 +62,7 @@ export const analyzeMeal = async (description: string, base64Image?: string): Pr
       contents: { parts },
       config: {
         responseMimeType: "application/json",
-        thinkingConfig: { thinkingBudget: 0 }, // 思考をスキップして即答
+        thinkingConfig: { thinkingBudget: 0 },
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -77,33 +78,25 @@ export const analyzeMeal = async (description: string, base64Image?: string): Pr
     });
     return JSON.parse(cleanJsonString(response.text || '{}'));
   } catch (error) {
-    console.warn("AI Analysis failed, returning fallback", error);
+    console.warn("Meal Analysis Fallback:", error);
     return {
       calories: 0, protein: 0, fat: 0, carbs: 0,
-      aiAnalysis: "解析をスキップしました。手動で記録を保存できます。"
+      aiAnalysis: "解析に失敗しました。記録のみ保存します。"
     };
   }
 };
 
 export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile, targets: any): Promise<{ score: number; comment: string }> => {
+  if (!apiKey || meals.length === 0) return { score: 0, comment: "記録を始めましょう！" };
   const ai = createAI();
-  if (meals.length === 0) return { score: 0, comment: "記録を始めましょう！" };
-  
-  const total = {
-    cal: meals.reduce((s, m) => s + m.calories, 0),
-    p: meals.reduce((s, m) => s + m.protein, 0),
-    f: meals.reduce((s, m) => s + m.fat, 0),
-    c: meals.reduce((s, m) => s + m.carbs, 0),
-  };
-
-  const prompt = `Score daily diet. Target: ${targets.calories}kcal, Actual: ${total.cal}kcal. JSON: {score:number, comment:string(short Japanese max 50 chars)}`;
+  const totalCal = meals.reduce((s, m) => s + m.calories, 0);
+  const prompt = `Score daily diet. Target: ${targets.calories}kcal, Actual: ${totalCal}kcal. JSON: {score:number, comment:string(Japanese max 50 chars)}`;
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: { 
         responseMimeType: "application/json",
-        // Using responseSchema to ensure structured output
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -117,11 +110,12 @@ export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile, tar
     });
     return JSON.parse(cleanJsonString(response.text || '{}'));
   } catch (error) {
-    return { score: 70, comment: "一歩ずつ進んでいきましょう！" };
+    return { score: 70, comment: "継続して理想の体を目指しましょう！" };
   }
 };
 
 export const generateSeikotsuinPlan = async (user: UserProfile, latestInBody?: InBodyData): Promise<string> => {
+  if (!apiKey) return "今日も姿勢を正して過ごしましょう！";
   const ai = createAI();
   const prompt = `Give one short positive health advice for a diet app. Japanese, 1 sentence.`;
   try {
@@ -130,8 +124,8 @@ export const generateSeikotsuinPlan = async (user: UserProfile, latestInBody?: I
       contents: prompt,
       config: { thinkingConfig: { thinkingBudget: 0 } }
     });
-    return response.text || "今日も姿勢を正して過ごしましょう！";
+    return response.text || "ストレッチで代謝を上げましょう！";
   } catch (error) {
-    return "ストレッチで代謝を上げましょう！";
+    return "水分をしっかり摂って代謝を上げましょう。";
   }
 }
