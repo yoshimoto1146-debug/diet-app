@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MealLog, UserProfile, Gender, JobActivity, MealCategory } from '../types';
+import { MealLog, UserProfile, MealCategory } from '../types';
 import { analyzeMeal } from '../services/geminiService';
 import { 
   Camera, Plus, Loader2, TrendingUp, Sun, Sunrise, Moon, Coffee, 
@@ -57,9 +57,20 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
       setPreviewImage(null);
     } catch (error) {
       console.error(error);
-      alert("通信エラーが発生しました。");
+      alert("解析中にエラーが発生しました。");
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -129,14 +140,7 @@ const MealTracker: React.FC<MealTrackerProps> = ({ logs, onAddLog, user }) => {
              <button onClick={() => fileInputRef.current?.click()} className="bg-slate-50 text-slate-600 p-4 rounded-2xl border border-slate-200 active:scale-90 transition-all">
                <Camera size={28} />
              </button>
-             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onloadend = () => setPreviewImage(reader.result as string);
-                  reader.readAsDataURL(file);
-                }
-             }} />
+             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageSelect} />
 
              <button 
                onClick={handleSubmit}
