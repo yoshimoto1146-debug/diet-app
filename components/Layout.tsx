@@ -25,17 +25,17 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, isStaff
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden font-sans text-slate-900">
-      <header className="bg-white shadow-sm z-10 sticky top-0 safe-top border-b border-slate-100">
+      <header className="bg-white shadow-sm z-40 sticky top-0 safe-top border-b border-slate-100">
         <div className="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className={`w-8 h-8 ${isStaff ? 'bg-indigo-600' : 'bg-teal-600'} rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm`}>
               {isStaff ? '管' : '整'}
             </div>
-            <h1 className="font-bold text-slate-800 text-base">{isStaff ? 'スタッフ管理パネル' : '整骨院AIコーチ'}</h1>
+            <h1 className="font-bold text-slate-800 text-sm tracking-tight">{isStaff ? 'スタッフ管理パネル' : '整骨院AIコーチ'}</h1>
           </div>
           {isStaff && (
             <div className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-1 rounded-full border border-indigo-100">
-              STAFF MODE
+              STAFF
             </div>
           )}
         </div>
@@ -45,7 +45,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, isStaff
         {children}
       </main>
 
-      <nav className="bg-white border-t border-slate-100 fixed bottom-0 w-full z-20 pb-safe">
+      <nav className="bg-white border-t border-slate-100 fixed bottom-0 w-full z-40 pb-safe">
         <div className="max-w-md mx-auto flex justify-around">
           {navItems.map((item) => {
             const Icon = item.icon;
