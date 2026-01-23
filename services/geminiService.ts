@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { MealLog, InBodyData, UserProfile } from "../types";
+import { MealLog, InBodyData, UserProfile, DietGoal } from "../types";
 
 // APIキーが設定されていない場合でもビルドが落ちないようにする
 const apiKey = process.env.API_KEY || "";
@@ -34,7 +34,7 @@ export const analyzeInBodyImage = async (base64Image: string): Promise<Partial<I
             visceralFatLevel: { type: Type.NUMBER },
             score: { type: Type.NUMBER },
           },
-          required: ["date", "weightKg", "bodyFatPercent", "muscleMassKg", "bmi"]
+          required: ["date", "weightKg"]
         },
         thinkingConfig: { thinkingBudget: 0 }
       }
@@ -90,7 +90,7 @@ export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile, tar
   if (!apiKey || meals.length === 0) return { score: 0, comment: "記録を始めましょう！" };
   const ai = createAI();
   const totalCal = meals.reduce((s, m) => s + m.calories, 0);
-  const prompt = `Score daily diet. Target: ${targets.calories}kcal, Actual: ${totalCal}kcal. JSON: {score:number, comment:string(Japanese max 50 chars)}`;
+  const prompt = `Score daily diet. Goal: ${user.goal}, Target: ${targets.calories}kcal, Actual: ${totalCal}kcal. JSON: {score:number, comment:string(Japanese max 50 chars)}`;
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -117,7 +117,8 @@ export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile, tar
 export const generateSeikotsuinPlan = async (user: UserProfile, latestInBody?: InBodyData): Promise<string> => {
   if (!apiKey) return "今日も姿勢を正して過ごしましょう！";
   const ai = createAI();
-  const prompt = `Give one short positive health advice for a diet app. Japanese, 1 sentence.`;
+  const context = `User Goal: ${user.goal}, Current Weight: ${latestInBody?.weightKg || 'Unknown'}.`;
+  const prompt = `${context} Give one short positive health advice as a professional diet coach at an orthopedic clinic. Use Japanese, max 1 sentence. Focus on their specific goal.`;
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
