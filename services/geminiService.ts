@@ -1,13 +1,21 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { MealLog, InBodyData, UserProfile, DietGoal } from "../types";
 
+/**
+ * AIインスタンスの生成
+ */
 const getAI = () => {
   return new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 };
 
+/**
+ * AIのテキストレスポンスからJSONを安全に抽出する
+ */
 const parseJsonSafe = (text: string | undefined) => {
   if (!text) return {};
   try {
+    // マークダウンのコードブロックが含まれる場合に対応
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const cleaned = jsonMatch ? jsonMatch[0] : text.trim();
     return JSON.parse(cleaned);
@@ -80,7 +88,7 @@ export const analyzeMeal = async (description: string, base64Image?: string): Pr
 };
 
 export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile, targets: any): Promise<{ score: number; comment: string }> => {
-  if (meals.length === 0) return { score: 0, comment: "今日の食事を記録して、アドバイスを受け取りましょう！" };
+  if (meals.length === 0) return { score: 0, comment: "まずは今日の食事を1つ記録してみましょう！" };
   
   const ai = getAI();
   const totalCal = meals.reduce((s, m) => s + m.calories, 0);
@@ -88,8 +96,8 @@ export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile, tar
   ユーザーの目的: ${user.goal}
   今日の総摂取カロリー: ${totalCal}kcal / 目標: ${targets.calories}kcal
   
-  このユーザーに合わせた評価とアドバイスをJSONで返してください。
-  目的が「糖尿病予防」なら糖質制限について、「高血圧予防」なら塩分について、「産後」なら骨盤や栄養について、「産後(授乳中)」なら十分な栄養摂取と母乳への影響について言及してください。
+  評価とアドバイスをJSONで返してください。
+  目的が「糖尿病予防」なら糖質制限、「高血圧予防」なら塩分、「産後」なら骨盤ケアや栄養、「授乳中」なら必要な追加栄養に焦点を当ててください。
   { "score": 0-100, "comment": "50文字以内" }`;
 
   try {
@@ -100,7 +108,7 @@ export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile, tar
     });
     return parseJsonSafe(response.text);
   } catch (error) {
-    return { score: 70, comment: "継続が何よりの成功への近道です！" };
+    return { score: 70, comment: "継続こそが成功の鍵です。明日も頑張りましょう！" };
   }
 };
 
@@ -108,17 +116,15 @@ export const generateSeikotsuinPlan = async (user: UserProfile, latestInBody?: I
   const ai = getAI();
   const prompt = `あなたは整骨院の専属ダイエットコーチです。
   ユーザーの目的: ${user.goal}
-  最新の体重: ${latestInBody?.weightKg || '未入力'}kg
-  
-  目的（${user.goal}）に応じた、整骨院ならではの専門的なワンポイントアドバイス（姿勢、ストレッチ、代謝、産後ケアなど）を1文で作成してください。`;
+  現在の状態に基づき、姿勢や代謝に関する専門的なアドバイスを1文（30文字以内）で作成してください。`;
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt
     });
-    return response.text || "正しい姿勢がダイエットの基本です。";
+    return response.text || "正しい姿勢で過ごし、基礎代謝を高めていきましょう。";
   } catch (error) {
-    return "ストレッチで巡りを良くしていきましょう！";
+    return "ストレッチを取り入れて、巡りの良い体を作っていきましょう。";
   }
 };
