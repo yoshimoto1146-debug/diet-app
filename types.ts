@@ -19,9 +19,11 @@ export enum LifestyleActivity {
 
 export enum DietGoal {
   POSTPARTUM = '産後ダイエット',
+  POSTPARTUM_NURSING = '産後ダイエット(授乳中)',
   DIABETES = '糖尿病予防',
   HYPERTENSION = '高血圧予防',
-  GENERAL = 'ダイエット'
+  GENERAL = '一般ダイエット',
+  OTHER = 'その他（カスタム）'
 }
 
 export type MealCategory = '朝食' | '昼食' | '夕食' | '間食';
@@ -38,6 +40,12 @@ export interface UserProfile {
   lifestyleActivity: LifestyleActivity;
   goal: DietGoal;
   isStaff?: boolean;
+  customTargets?: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+  };
 }
 
 export interface InBodyData {
