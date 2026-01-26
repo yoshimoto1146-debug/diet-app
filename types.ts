@@ -1,30 +1,4 @@
-export enum Gender {
-  MALE = '男性',
-  FEMALE = '女性',
-  OTHER = 'その他'
-}
 
-export enum JobActivity {
-  DESK = 'デスクワーク（ほぼ動かない）',
-  WALK = '歩き回る仕事（営業など）',
-  DRIVE = '運転が中心',
-  HEAVY = '重い物を持つ（重労働）'
-}
-
-export enum LifestyleActivity {
-  NONE = 'ほぼ動かない',
-  LOW = '週1〜2回運動している',
-  HIGH = '週3〜4回以上運動している'
-}
-
-export enum DietGoal {
-  POSTPARTUM = '産後ダイエット',
-  DIABETES = '糖尿病予防',
-  HYPERTENSION = '高血圧予防',
-  GENERAL = 'ダイエット'
-}
-
-export type MealCategory = '朝食' | '昼食' | '夕食' | '間食';
 
 export interface UserProfile {
   patientId: string;
@@ -76,3 +50,4 @@ export interface ExerciseLog {
 }
 
 export type ViewState = 'login' | 'dashboard' | 'inbody' | 'meals' | 'exercise' | 'profile' | 'staff-portal';
+
