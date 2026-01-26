@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { InBodyData, UserProfile, MealLog, Gender, JobActivity, DietGoal } from '../types';
 import { generateSeikotsuinPlan, evaluateDailyDiet } from '../services/geminiService';
-import { Sparkles, ArrowRight, TrendingDown, Target, Utensils, Award, Plus, Info } from 'lucide-react';
+import { Sparkles, ArrowRight, TrendingDown, Plus, Info } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 
@@ -24,12 +23,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, inBodyHistory, mealLogs, se
   const caloriesConsumed = todaysMeals.reduce((acc, curr) => acc + curr.calories, 0);
 
   const calculateTargets = () => {
+    // カスタム設定がある場合はそれを優先
+    if (user.goal === DietGoal.OTHER && user.customTargets) {
+      return user.customTargets;
+    }
+
     let baseBMR = user.gender === Gender.MALE 
       ? (10 * (user.targetWeightKg || 60)) + (6.25 * (user.heightCm || 170)) - (5 * (user.age || 30)) + 5
       : (10 * (user.targetWeightKg || 50)) + (6.25 * (user.heightCm || 160)) - (5 * (user.age || 30)) - 161;
     
     const activityMult = user.jobActivity === JobActivity.HEAVY ? 1.7 : user.jobActivity === JobActivity.WALK ? 1.5 : 1.2;
-    const targetCal = Math.round(baseBMR * activityMult);
+    let targetCal = Math.round(baseBMR * activityMult);
+
+    // 授乳中の場合は厚生労働省の推奨に基づき +350kcal 加算
+    if (user.goal === DietGoal.POSTPARTUM_NURSING) {
+      targetCal += 350;
+    }
     
     return {
       calories: targetCal,
@@ -81,9 +90,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, inBodyHistory, mealLogs, se
 
   const goalColors: Record<DietGoal, string> = {
     [DietGoal.POSTPARTUM]: 'bg-rose-500',
+    [DietGoal.POSTPARTUM_NURSING]: 'bg-pink-600',
     [DietGoal.DIABETES]: 'bg-indigo-600',
     [DietGoal.HYPERTENSION]: 'bg-sky-600',
     [DietGoal.GENERAL]: 'bg-teal-600',
+    [DietGoal.OTHER]: 'bg-slate-700',
   };
 
   return (
@@ -208,13 +219,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, inBodyHistory, mealLogs, se
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      )}
-      
-      {chartData.length === 0 && (
-        <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center">
-          <TrendingDown size={32} className="mx-auto text-slate-300 mb-2" />
-          <p className="text-xs font-bold text-slate-400">グラフを表示するには体重を記録してください</p>
         </div>
       )}
     </div>
