@@ -1,24 +1,27 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { MealLog, InBodyData, UserProfile } from "../types";
 
-// APIキーの取得とSDKの初期化
+/**
+ * AIインスタンスの生成
+ * 提示されたAPIキーは環境変数経由で注入される想定です。
+ */
 const getAI = () => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    console.warn("API_KEY is not defined in the environment.");
-  }
-  return new GoogleGenAI({ apiKey: apiKey || "" });
+  return new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 };
 
-// JSON文字列を安全に抽出・パースする補助関数
-const parseJsonSafe = (text: string) => {
+/**
+ * AIのテキストレスポンスからJSONを安全に抽出する
+ */
+const parseJsonSafe = (text: string | undefined) => {
+  if (!text) return {};
   try {
-    // ```json ... ``` のブロックを探す、なければ文字列全体をトリミング
+    // マークダウンのコードブロック(```json ... ```)が含まれる場合に対応
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    const cleaned = jsonMatch ? jsonMatch[0] : text.replace(/```json\n?|\n?```/g, '').trim();
+    const cleaned = jsonMatch ? jsonMatch[0] : text.trim();
     return JSON.parse(cleaned);
   } catch (e) {
-    console.error("JSON Parse Error:", e, "Original text:", text);
+    console.error("JSON Parsing Error:", e, "Raw Text:", text);
     return {};
   }
 };
@@ -27,7 +30,7 @@ export const analyzeInBodyImage = async (base64Image: string): Promise<Partial<I
   const ai = getAI();
   const prompt = `InBody結果用紙の写真を解析し、以下の項目をJSON形式で抽出してください:
   date (YYYY-MM-DD形式), weightKg (数値), bodyFatPercent (数値), muscleMassKg (数値), bmi (数値), visceralFatLevel (数値), score (数値).
-  読み取れない項目は含めないでください。`;
+  読み取れない項目は省略してください。`;
 
   try {
     const response = await ai.models.generateContent({
@@ -54,18 +57,18 @@ export const analyzeInBodyImage = async (base64Image: string): Promise<Partial<I
         }
       }
     });
-    return parseJsonSafe(response.text || '{}');
+    return parseJsonSafe(response.text);
   } catch (error) {
-    console.error("InBody Analysis Failed:", error);
+    console.error("InBody Image Analysis Error:", error);
     throw error;
   }
 };
 
 export const analyzeMeal = async (description: string, base64Image?: string): Promise<Partial<MealLog>> => {
   const ai = getAI();
-  const prompt = `食事内容（テキストまたは画像）を分析し、推定栄養素をJSONで返してください。
+  const prompt = `食事内容を分析し、推定栄養素をJSONで返してください。
   入力: "${description}"
-  項目: calories (kcal単位の数値), protein (g単位の数値), fat (g単位の数値), carbs (g単位の数値), aiAnalysis (40文字以内の日本語アドバイス)`;
+  抽出項目: calories (kcal), protein (g), fat (g), carbs (g), aiAnalysis (40文字以内の日本語アドバイス)`;
 
   const parts: any[] = [{ text: prompt }];
   if (base64Image) {
@@ -91,19 +94,20 @@ export const analyzeMeal = async (description: string, base64Image?: string): Pr
         }
       }
     });
-    return parseJsonSafe(response.text || '{}');
+    return parseJsonSafe(response.text);
   } catch (error) {
-    console.error("Meal Analysis Failed:", error);
-    return { calories: 0, protein: 0, fat: 0, carbs: 0, aiAnalysis: "解析に失敗しました。記録のみ保存します。" };
+    console.error("Meal Analysis Error:", error);
+    return { calories: 0, protein: 0, fat: 0, carbs: 0, aiAnalysis: "解析中にエラーが発生しました。" };
   }
 };
 
 export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile, targets: any): Promise<{ score: number; comment: string }> => {
-  if (meals.length === 0) return { score: 0, comment: "食事の記録を始めましょう！" };
+  if (meals.length === 0) return { score: 0, comment: "まずは今日の食事を1つ記録してみましょう！" };
+  
   const ai = getAI();
   const totalCal = meals.reduce((s, m) => s + m.calories, 0);
-  const prompt = `今日の食事内容（合計${totalCal}kcal）を、ユーザーの目的（${user.goal}）と目標（${targets.calories}kcal）に照らして採点してください。
-  結果はJSON形式で返してください: { "score": 0から100の数値, "comment": "50文字以内の具体的なアドバイス" }`;
+  const prompt = `今日の食事（合計${totalCal}kcal）を、ユーザーの目的「${user.goal}」と目標「${targets.calories}kcal」に基づいて評価してください。
+  返却形式(JSON): { "score": 0-100の数値, "comment": "50文字以内のアドバイス" }`;
 
   try {
     const response = await ai.models.generateContent({
@@ -111,9 +115,9 @@ export const evaluateDailyDiet = async (meals: MealLog[], user: UserProfile, tar
       contents: prompt,
       config: { responseMimeType: "application/json" }
     });
-    return parseJsonSafe(response.text || '{"score":0,"comment":""}');
+    return parseJsonSafe(response.text);
   } catch (error) {
-    return { score: 70, comment: "継続は力なり。明日もバランスの良い食事を心がけましょう！" };
+    return { score: 0, comment: "評価を取得できませんでした。" };
   }
 };
 
@@ -121,8 +125,7 @@ export const generateSeikotsuinPlan = async (user: UserProfile, latestInBody?: I
   const ai = getAI();
   const prompt = `あなたは整骨院の専属ダイエットコーチです。
   ユーザーの目的: ${user.goal}
-  最新の体重: ${latestInBody?.weightKg || '未入力'}kg
-  このユーザーに向けて、やる気を引き出す専門的なワンポイントアドバイスを1文で作成してください。`;
+  現在の状態に基づき、姿勢や代謝に関する専門的かつ前向きなアドバイスを1文（30文字以内）で作成してください。`;
 
   try {
     const response = await ai.models.generateContent({
@@ -131,6 +134,6 @@ export const generateSeikotsuinPlan = async (user: UserProfile, latestInBody?: I
     });
     return response.text || "今日も正しい姿勢で過ごし、代謝を上げていきましょう！";
   } catch (error) {
-    return "ストレッチで体を整え、理想の体型を目指しましょう！";
+    return "ストレッチを取り入れて、巡りの良い体を作っていきましょう！";
   }
 };
