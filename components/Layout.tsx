@@ -1,6 +1,6 @@
 import React from 'react';
 import { ViewState } from '../types';
-import { LayoutDashboard, Scale, Utensils, Activity, User, Users } from 'lucide-react';
+import { LayoutDashboard, Scale, Utensils, User, Users } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,7 +19,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, isStaff
     { id: 'dashboard', label: 'ホーム', icon: LayoutDashboard },
     { id: 'inbody', label: 'InBody', icon: Scale },
     { id: 'meals', label: '食事', icon: Utensils },
-    { id: 'exercise', label: '運動', icon: Activity },
     { id: 'profile', label: '設定', icon: User },
   ];
 
@@ -29,9 +28,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, isStaff
         <div className="max-w-md mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className={`w-8 h-8 ${isStaff ? 'bg-indigo-600' : 'bg-teal-600'} rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm`}>
-              {isStaff ? '管' : '整'}
+              {isStaff ? '管' : '食'}
             </div>
-            <h1 className="font-bold text-slate-800 text-sm tracking-tight">{isStaff ? 'スタッフ管理パネル' : '整骨院AIコーチ'}</h1>
+            <h1 className="font-bold text-slate-800 text-sm tracking-tight">{isStaff ? 'スタッフ管理パネル' : '食事管理AIコーチ'}</h1>
           </div>
           {isStaff && (
             <div className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-1 rounded-full border border-indigo-100">
