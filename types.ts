@@ -19,7 +19,7 @@ export enum LifestyleActivity {
 
 export enum DietGoal {
   POSTPARTUM = '産後ダイエット',
-  POSTPARTUM_NURSING = '産後ダイエット(授乳中)',
+  POSTPARTUM_NURSING = '産後ダイエット(授授中)',
   DIABETES = '糖尿病予防',
   HYPERTENSION = '高血圧予防',
   GENERAL = '一般ダイエット',
@@ -30,7 +30,6 @@ export type MealCategory = '朝食' | '昼食' | '夕食' | '間食';
 
 export interface UserProfile {
   patientId: string;
-  clinicCode: string;
   name: string;
   age: number;
   gender: Gender;
@@ -52,10 +51,11 @@ export interface InBodyData {
   id: string;
   date: string;
   weightKg: number;
+  bodyFatMassKg?: number; 
+  muscleMassKg?: number;   
+  visceralFatLevel?: number; 
   bodyFatPercent?: number;
-  muscleMassKg?: number;
   bmi?: number;
-  visceralFatLevel?: number;
   score?: number;
   isManual?: boolean;
 }
@@ -74,13 +74,4 @@ export interface MealLog {
   aiAnalysis?: string;
 }
 
-export interface ExerciseLog {
-  id: string;
-  date: string;
-  activity: string;
-  durationMinutes: number;
-  intensity: 'Low' | 'Medium' | 'High';
-  caloriesBurned?: number;
-}
-
-export type ViewState = 'login' | 'dashboard' | 'inbody' | 'meals' | 'exercise' | 'profile' | 'staff-portal';
+export type ViewState = 'login' | 'dashboard' | 'inbody' | 'meals' | 'profile' | 'staff-portal';
