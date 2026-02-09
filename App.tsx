@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ViewState, InBodyData, MealLog, UserProfile, Gender, JobActivity, LifestyleActivity, DietGoal } from './types';
-import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import InBodyManager from './components/InBodyManager';
-import MealTracker from './components/MealTracker';
-import StaffPortal from './components/StaffPortal';
-import { Lock, ChevronLeft } from 'lucide-react';
+import Layout from './Layout';
+import Dashboard from './Dashboard';
+import InBodyManager from './InBodyManager';
+import MealTracker from './MealTracker';
+import StaffPortal from './StaffPortal';
+import { ChevronLeft } from 'lucide-react';
 
 const EMPTY_USER: UserProfile = {
   patientId: "",
@@ -44,14 +44,11 @@ const App: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const patientId = formData.get('patientId') as string;
+    const patientId = new FormData(e.currentTarget).get('patientId') as string;
     if (patientId === "STAFF999") {
       setUser({ ...EMPTY_USER, patientId: "STAFF", isStaff: true });
       setView('staff-portal');
-      return;
-    }
-    if (patientId) {
+    } else if (patientId) {
       setUser({ ...user, patientId, isStaff: false });
       setView(user.name ? 'dashboard' : 'profile');
     }
@@ -64,27 +61,33 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
+    if (currentView === 'login') return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+        <form onSubmit={handleLogin} className="w-full max-w-xs space-y-4">
+          <div className="w-16 h-16 bg-teal-600 rounded-2xl mx-auto mb-8 shadow-lg flex items-center justify-center text-white font-black text-2xl">D</div>
+          <input name="patientId" required placeholder="診察券番号を入力" className="w-full bg-white p-4 rounded-2xl shadow-sm outline-none border border-slate-100 font-bold" />
+          <button className="w-full bg-teal-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-teal-600/20">ログイン</button>
+        </form>
+      </div>
+    );
+
     switch (currentView) {
       case 'dashboard': return <Dashboard user={user} inBodyHistory={inBodyHistory} mealLogs={mealLogs} setView={setView} />;
-      case 'inbody': return <InBodyManager history={inBodyHistory} onAddEntry={d => setInBodyHistory(prev => [...prev, d].sort((a,b) => a.date.localeCompare(b.date)))} onDeleteEntry={id => setInBodyHistory(prev => prev.filter(e => e.id !== id))} />;
-      case 'meals': return <MealTracker logs={mealLogs} onAddLog={l => setMealLogs(prev => [...prev, l])} onUpdateLog={l => setMealLogs(prev => prev.map(m => m.id === l.id ? l : m))} onDeleteLog={id => setMealLogs(prev => prev.filter(m => m.id !== id))} user={user} />;
+      case 'inbody': return <InBodyManager history={inBodyHistory} onAddEntry={d => setInBodyHistory(prev => [...prev, d].sort((a,b) => b.date.localeCompare(a.date)))} />;
+      case 'meals': return <MealTracker logs={mealLogs} onAddLog={l => setMealLogs(prev => [...prev, l])} onDeleteLog={id => setMealLogs(prev => prev.filter(m => m.id !== id))} user={user} />;
       case 'staff-portal': return <StaffPortal logout={logout} />;
       case 'profile': return (
-        <div className="p-6 pb-32">
-          <button onClick={() => setView('dashboard')} className="mb-8 p-2 bg-white rounded-full shadow-sm"><ChevronLeft /></button>
+        <div className="p-6">
+          <button onClick={() => setView('dashboard')} className="mb-8 p-2 bg-white rounded-full shadow-sm"><ChevronLeft size={20} /></button>
           <form onSubmit={e => { e.preventDefault(); setView('dashboard'); }} className="space-y-6">
             <div className="bg-white p-6 rounded-[32px] shadow-xl space-y-4">
-              <input name="name" required placeholder="お名前" defaultValue={user.name} onChange={e => setUser({...user, name: e.target.value})} className="w-full bg-slate-50 p-4 rounded-xl outline-none" />
-              <select value={user.goal} onChange={e => setUser({...user, goal: e.target.value as DietGoal})} className="w-full bg-slate-50 p-4 rounded-xl outline-none">
+              <input name="name" required placeholder="お名前" defaultValue={user.name} onChange={e => setUser({...user, name: e.target.value})} className="w-full bg-slate-50 p-4 rounded-xl outline-none font-bold" />
+              <select value={user.goal} onChange={e => setUser({...user, goal: e.target.value as DietGoal})} className="w-full bg-slate-50 p-4 rounded-xl outline-none font-bold">
                 {Object.values(DietGoal).map(g => <option key={g} value={g}>{g}</option>)}
               </select>
-              <div className="grid grid-cols-2 gap-2">
-                <input type="number" placeholder="身長" defaultValue={user.heightCm} onChange={e => setUser({...user, heightCm: Number(e.target.value)})} className="bg-slate-50 p-4 rounded-xl outline-none" />
-                <input type="number" placeholder="目標体重" defaultValue={user.targetWeightKg} onChange={e => setUser({...user, targetWeightKg: Number(e.target.value)})} className="bg-slate-50 p-4 rounded-xl outline-none" />
-              </div>
             </div>
-            <button type="submit" className="w-full bg-teal-600 text-white font-black py-5 rounded-2xl shadow-lg">設定を保存</button>
-            <button type="button" onClick={logout} className="w-full text-rose-400 font-bold py-4">ログアウト</button>
+            <button className="w-full bg-teal-600 text-white font-black py-5 rounded-2xl">保存する</button>
+            <button type="button" onClick={logout} className="w-full text-rose-400 font-bold">ログアウト</button>
           </form>
         </div>
       );
@@ -94,5 +97,4 @@ const App: React.FC = () => {
 
   return <Layout currentView={currentView} setView={setView} isStaff={user.isStaff}>{renderContent()}</Layout>;
 };
-
 export default App;
