@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ViewState, InBodyData, MealLog, UserProfile, Gender, JobActivity, LifestyleActivity, DietGoal } from './types';
 import Layout from './Layout';
@@ -64,9 +65,10 @@ const App: React.FC = () => {
     if (currentView === 'login') return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
         <form onSubmit={handleLogin} className="w-full max-w-xs space-y-4">
-          <div className="w-16 h-16 bg-teal-600 rounded-2xl mx-auto mb-8 shadow-lg flex items-center justify-center text-white font-black text-2xl">D</div>
+          <div className="w-16 h-16 bg-teal-600 rounded-2xl mx-auto mb-8 shadow-lg flex items-center justify-center text-white font-black text-2xl">食</div>
+          <h1 className="text-xl font-black text-center text-slate-800 mb-6 tracking-tight">整骨院AIダイエット</h1>
           <input name="patientId" required placeholder="診察券番号を入力" className="w-full bg-white p-4 rounded-2xl shadow-sm outline-none border border-slate-100 font-bold" />
-          <button className="w-full bg-teal-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-teal-600/20">ログイン</button>
+          <button className="w-full bg-teal-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-teal-600/20 active:scale-95 transition-all">ログイン</button>
         </form>
       </div>
     );
@@ -80,14 +82,14 @@ const App: React.FC = () => {
         <div className="p-6">
           <button onClick={() => setView('dashboard')} className="mb-8 p-2 bg-white rounded-full shadow-sm"><ChevronLeft size={20} /></button>
           <form onSubmit={e => { e.preventDefault(); setView('dashboard'); }} className="space-y-6">
-            <div className="bg-white p-6 rounded-[32px] shadow-xl space-y-4">
+            <div className="bg-white p-6 rounded-[32px] shadow-xl space-y-4 border border-slate-100">
               <input name="name" required placeholder="お名前" defaultValue={user.name} onChange={e => setUser({...user, name: e.target.value})} className="w-full bg-slate-50 p-4 rounded-xl outline-none font-bold" />
               <select value={user.goal} onChange={e => setUser({...user, goal: e.target.value as DietGoal})} className="w-full bg-slate-50 p-4 rounded-xl outline-none font-bold">
                 {Object.values(DietGoal).map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
-            <button className="w-full bg-teal-600 text-white font-black py-5 rounded-2xl">保存する</button>
-            <button type="button" onClick={logout} className="w-full text-rose-400 font-bold">ログアウト</button>
+            <button className="w-full bg-teal-600 text-white font-black py-5 rounded-2xl shadow-xl shadow-teal-600/20 active:scale-95 transition-all">保存する</button>
+            <button type="button" onClick={logout} className="w-full text-rose-400 font-bold py-4">ログアウト</button>
           </form>
         </div>
       );
