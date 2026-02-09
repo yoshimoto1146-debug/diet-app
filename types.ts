@@ -1,4 +1,3 @@
-
 export enum Gender {
   MALE = '男性',
   FEMALE = '女性',
@@ -40,9 +39,6 @@ export interface UserProfile {
   lifestyleActivity: LifestyleActivity;
   goal: DietGoal;
   isStaff?: boolean;
-  /**
-   * Added to resolve property 'customTargets' does not exist errors
-   */
   customTargets?: {
     calories: number;
     protein: number;
@@ -60,10 +56,21 @@ export interface InBodyData {
   visceralFatLevel?: number; 
   bodyFatPercent?: number;
   score?: number;
-  /**
-   * Added to resolve property 'isManual' does not exist errors
-   */
   isManual?: boolean;
+}
+
+export interface MealLog {
+  id: string;
+  date: string;
+  time: string;
+  category: MealCategory;
+  description: string;
+  imageUrl?: string;
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+  aiAnalysis?: string;
 }
 
 export type ViewState = 'login' | 'dashboard' | 'inbody' | 'meals' | 'profile' | 'staff-portal';
