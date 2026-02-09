@@ -1,3 +1,4 @@
+
 export enum Gender {
   MALE = '男性',
   FEMALE = '女性',
@@ -19,7 +20,7 @@ export enum LifestyleActivity {
 
 export enum DietGoal {
   POSTPARTUM = '産後ダイエット',
-  POSTPARTUM_NURSING = '産後ダイエット(授授中)',
+  POSTPARTUM_NURSING = '産後ダイエット(授乳中)',
   DIABETES = '糖尿病予防',
   HYPERTENSION = '高血圧予防',
   GENERAL = '一般ダイエット',
