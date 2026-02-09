@@ -1,4 +1,3 @@
-
 export enum Gender {
   MALE = '男性',
   FEMALE = '女性',
@@ -75,4 +74,4 @@ export interface MealLog {
   aiAnalysis?: string;
 }
 
-export type ViewState = 'login' | 'dashboard' | 'inbody' | 'meals' | 'profile' | 'staff-portal';
+export type ViewState = 'login' | 'dashboard' | 'inbody' | 'meals' | 'profil
